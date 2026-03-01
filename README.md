@@ -36,7 +36,7 @@ Using data provided by government sources such as the Central Ground Water Board
 
 - [@Anupam Shukla](https://github.com/AnupamShukla100)
 
-- [@Ayush Verma] (https://github.com/me-aayush)
+- [@me-aayush](https://github.com/me-aayush)
 
 
 
