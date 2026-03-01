@@ -36,6 +36,8 @@ Using data provided by government sources such as the Central Ground Water Board
 
 - [@Anupam Shukla](https://github.com/AnupamShukla100)
 
+- [@Ayush Verma] (https://github.com/me-aayush)
+
 
 
 ## Features
@@ -81,7 +83,7 @@ Follow the steps below to set up the project locally:
 Clone the repository to your desired location:
 
 ```bash
-git clone https://github.com/astroxphiliauxx/Neer-Mathan.git
+git clone[ https://github.com/astroxphiliauxx/Neer-Mathan.git](https://github.com/AkashTyagiCSIT/Ground-Water-Level-Predictor)
 ```
 
 #### 2. Install dependencies
@@ -113,9 +115,7 @@ Contributions are always welcome!
 Contributions are what make the open source community such an amazing place to be learn, inspire, and create.
 
 Please read our [contributing guidelines](CONTRIBUTING.md) and steps to get started as a contributor.
-## Feedback
 
-If you have any feedback, please reach out to us at astroxphiliauxx@gmail.com
 
 
 ## License
