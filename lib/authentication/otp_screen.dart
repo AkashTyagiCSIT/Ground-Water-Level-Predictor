@@ -65,6 +65,21 @@ class _OtpScreenState extends State<OtpScreen> {
       isLoading = true;
     });
 
+    // Check if API endpoints are configured. If empty, proceed in Demo Mode.
+    if (AppConstants.otpUrl.isEmpty) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("OTP Verified Successfully (Demo Mode)!")),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
     try {
       final url = Uri.parse(AppConstants.otpUrl);
       final response = await http.patch(
@@ -97,9 +112,11 @@ class _OtpScreenState extends State<OtpScreen> {
         const SnackBar(content: Text("An error occurred during verification!")),
       );
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -115,6 +132,20 @@ class _OtpScreenState extends State<OtpScreen> {
       isLoading = true;
       otpCode = "";
     });
+
+    // Check if API endpoints are configured. If empty, proceed in Demo Mode.
+    if (AppConstants.reOtpUrl.isEmpty) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("OTP Regenerated Successfully (Demo Mode)")),
+        );
+      }
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
 
     try {
       final url = Uri.parse(AppConstants.reOtpUrl);
@@ -139,6 +170,12 @@ class _OtpScreenState extends State<OtpScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("An error occurred during OTP resend!")),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 

@@ -43,6 +43,24 @@ class _DistrictWellCodeApp2State extends State<DistrictWellCodeApp2> {
       isLoading = true;
     });
 
+    // Check if API endpoints are configured. If empty, proceed in Demo Mode.
+    if (AppConstants.predictionUrl.isEmpty) {
+      await Future.delayed(const Duration(milliseconds: 1000));
+      // Generate some realistic water level mock data
+      final mockData = [12.4, 11.8, 13.2, 12.9, 14.1, 13.5, 12.1, 11.5, 12.8, 13.6, 14.2, 13.9];
+      setState(() {
+        futurePrediction = mockData;
+        lastPredictedValue = 13.9;
+        isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Predictions generated successfully (Demo Mode)")),
+        );
+      }
+      return;
+    }
+
     try {
       final url = Uri.parse(AppConstants.predictionUrl);
       final response = await http.post(

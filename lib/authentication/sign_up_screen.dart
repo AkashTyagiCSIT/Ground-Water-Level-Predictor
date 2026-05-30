@@ -36,6 +36,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
         isLoading = true;
       });
 
+      // Check if API endpoints are configured. If empty, proceed in Demo Mode.
+      if (AppConstants.signupUrl.isEmpty) {
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('userId', 12345); // Store mock userId
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Sign-Up Successful (Demo Mode)!")),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const OtpScreen()),
+          );
+        }
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
       final url = Uri.parse(AppConstants.signupUrl);
 
       final body = jsonEncode({
@@ -56,20 +76,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
         if (response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Sign-Up Successful!")), );
-                //save id in sharedpref
+          
           final data = jsonDecode(response.body);
-// Get userId
-//           final userId = data['id']; // Ensure it's stored as a string
-//           final prefs = await SharedPreferences.getInstance();
-//           await prefs.setInt('userId', userId);
-          // Navigate to OTP screen after signup
           final userId = data['id'];
           final prefs = await SharedPreferences.getInstance();
           await prefs.setInt('userId', userId);
 
-
-           Navigator.push(context,  MaterialPageRoute(builder: (context) => OtpScreen()),
-           );
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const OtpScreen()),
+            );
+          }
 
         } else if (response.statusCode == 400) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -82,9 +100,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SnackBar(content: Text("An error occurred. Please try again.")),
         );
       } finally {
-        setState(() {
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
       }
     }
   }
