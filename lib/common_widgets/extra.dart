@@ -85,6 +85,7 @@ class _DistrictWellCodeApp2State extends State<DistrictWellCodeApp2> {
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final nearestWellName = args['nearestWellName'] ?? 'Unknown';
+    selectedWellCode ??= nearestWellName;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -129,7 +130,7 @@ class _DistrictWellCodeApp2State extends State<DistrictWellCodeApp2> {
                 ),
 
                 // Dropdown for Well Code
-                if (nearestWellName != null && nearestWellName.isNotEmpty)
+                if (nearestWellName.isNotEmpty)
                   DropdownButton<String>(
                     hint: const Text(
                       "Select Well Code",
@@ -152,7 +153,7 @@ class _DistrictWellCodeApp2State extends State<DistrictWellCodeApp2> {
                     items: [
                       DropdownMenuItem(
                         value: nearestWellName,
-                        child: Text(nearestWellName!),
+                        child: Text(nearestWellName),
                       ),
                     ],
                   ),

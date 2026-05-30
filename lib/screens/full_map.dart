@@ -37,7 +37,6 @@ class _FullScreenMapState extends State<FullScreenMap> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _searchController.addListener((){
       onChange();
@@ -46,7 +45,7 @@ class _FullScreenMapState extends State<FullScreenMap> {
   }
 
   void onChange(){
-    if(_SessionToken==null){
+    if(_SessionToken.isEmpty){
       setState(() {
         _SessionToken=uuid.v4();
       });
@@ -72,6 +71,72 @@ class _FullScreenMapState extends State<FullScreenMap> {
             snippet: "ID: ${station['id']}",
           ),
         ),
+      );
+    }
+  }
+
+  Future<void> _handleSearch(String query, MapState mapState) async {
+    if (query.trim().isEmpty) return;
+
+    final normalizedQuery = query.trim().toUpperCase();
+
+    // 1. Search locally in our Agra stations list
+    Map<String, dynamic>? matchedStation;
+    for (var station in stations) {
+      if (station['name'].toString().toUpperCase() == normalizedQuery ||
+          station['id'].toString() == normalizedQuery) {
+        matchedStation = station;
+        break;
+      }
+    }
+
+    if (matchedStation != null) {
+      final latitude = matchedStation['latitude'] is int
+          ? (matchedStation['latitude'] as int).toDouble()
+          : matchedStation['latitude'] as double;
+
+      final longitude = matchedStation['longitude'] is int
+          ? (matchedStation['longitude'] as int).toDouble()
+          : matchedStation['longitude'] as double;
+
+      final position = LatLng(latitude, longitude);
+
+      final controller = await _controller.future;
+      await controller.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: position, zoom: 14),
+      ));
+
+      mapState.updateCircle(position);
+      Provider.of<LocationState>(context, listen: false).updateSelectedLocation(position);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Found station: ${matchedStation['name']}")),
+      );
+      return;
+    }
+
+    // 2. Fallback to address geocoding
+    try {
+      List<Location> locations = await locationFromAddress(query);
+      if (locations.isNotEmpty) {
+        final loc = locations.first;
+        final position = LatLng(loc.latitude, loc.longitude);
+
+        final controller = await _controller.future;
+        await controller.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(target: position, zoom: 12),
+        ));
+
+        mapState.updateCircle(position);
+        Provider.of<LocationState>(context, listen: false).updateSelectedLocation(position);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Address found!")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Station or Location not found")),
       );
     }
   }
@@ -130,35 +195,39 @@ class _FullScreenMapState extends State<FullScreenMap> {
                 );
               },
             ),
-            Positioned(
-              top: 10,
-              left: 10,
-              right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: const Offset(0, 2), // Shadow position
+            Consumer<MapState>(
+              builder: (context, mapState, child) {
+                return Positioned(
+                  top: 10,
+                  left: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: const Offset(0, 2), // Shadow position
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search location',
-                    border: InputBorder.none,
-                    prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
-                    contentPadding: EdgeInsets.symmetric(vertical: 15),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search location or Well ID (e.g. W15445)...',
+                        border: InputBorder.none,
+                        prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
+                        contentPadding: EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      onSubmitted: (value) => _handleSearch(value, mapState),
+                    ),
                   ),
-                  onSubmitted: (value) {},
-                ),
-              ),
+                );
+              }
             ), //search bar
 
             if (_placesList != null && _placesList.isNotEmpty)

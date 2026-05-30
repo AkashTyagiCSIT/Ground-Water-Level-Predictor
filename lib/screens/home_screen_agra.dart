@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import '../provider/map_provider/location_provider.dart';
@@ -55,6 +56,84 @@ class _HomeScreenAgraState extends State<HomeScreenAgra> {
     }
   }
 
+  Future<void> _handleSearch(String query, LocationState locationState, MapState mapState) async {
+    if (query.trim().isEmpty) return;
+
+    final normalizedQuery = query.trim().toUpperCase();
+    
+    // 1. Search locally in our Agra stations list
+    Map<String, dynamic>? matchedStation;
+    for (var station in stations) {
+      if (station['name'].toString().toUpperCase() == normalizedQuery ||
+          station['id'].toString() == normalizedQuery) {
+        matchedStation = station;
+        break;
+      }
+    }
+
+    if (matchedStation != null) {
+      final latitude = matchedStation['latitude'] is int
+          ? (matchedStation['latitude'] as int).toDouble()
+          : matchedStation['latitude'] as double;
+
+      final longitude = matchedStation['longitude'] is int
+          ? (matchedStation['longitude'] as int).toDouble()
+          : matchedStation['longitude'] as double;
+
+      final position = LatLng(latitude, longitude);
+
+      final controller = await _controller.future;
+      await controller.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: position, zoom: 14),
+      ));
+
+      locationState.updateSelectedLocation(position);
+      mapState.updateCircle(position);
+
+      setState(() {
+        nearestWellName = matchedStation!['name'];
+        nearestWellDistance = 0.0;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Found station: $nearestWellName")),
+      );
+      return;
+    }
+
+    // 2. Fallback to address geocoding
+    try {
+      List<Location> locations = await locationFromAddress(query);
+      if (locations.isNotEmpty) {
+        final loc = locations.first;
+        final position = LatLng(loc.latitude, loc.longitude);
+
+        final controller = await _controller.future;
+        await controller.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(target: position, zoom: 12),
+        ));
+
+        locationState.updateSelectedLocation(position);
+        mapState.updateCircle(position);
+
+        final nearestWell = findNearestStationLatLng(position);
+        final distance = calculateDistance(position, nearestWell.latLng);
+
+        setState(() {
+          nearestWellName = nearestWell.name;
+          nearestWellDistance = distance;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Address found! Nearest monitoring well: ${nearestWell.name}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Station or Location not found")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +176,7 @@ class _HomeScreenAgraState extends State<HomeScreenAgra> {
               });
             },
           ),
-          _buildSearchBar(),
+          _buildSearchBar(locationState, mapState),
           if (nearestWellName.isNotEmpty) _buildNearestWellCard(),
           Positioned(
             bottom: 20,
@@ -149,7 +228,7 @@ class _HomeScreenAgraState extends State<HomeScreenAgra> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(LocationState locationState, MapState mapState) {
     return Positioned(
       top: 10,
       left: 20,
@@ -169,14 +248,12 @@ class _HomeScreenAgraState extends State<HomeScreenAgra> {
         child: TextField(
           controller: _searchController,
           decoration: const InputDecoration(
-            hintText: 'Search location...',
+            hintText: 'Search location or Well ID (e.g. W15445)...',
             border: InputBorder.none,
             prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
             contentPadding: EdgeInsets.symmetric(vertical: 15),
           ),
-          onSubmitted: (value) {
-            // Handle location search (left for implementation)
-          },
+          onSubmitted: (value) => _handleSearch(value, locationState, mapState),
         ),
       ),
     );

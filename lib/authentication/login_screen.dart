@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'package:flutter_map/authentication/otp_screen.dart';
 import 'package:flutter_map/common_widgets/custom_bg.dart';
 import 'package:flutter_map/const/urls.dart';
@@ -12,7 +11,6 @@ import '../common_widgets/custom_text_form.dart';
 
 
 class LoginScreen extends StatefulWidget {
-
   const LoginScreen({super.key});
 
   @override
@@ -32,34 +30,44 @@ class _LoginScreenState extends State<LoginScreen> {
         isLoading = true;
       });
 
+      // Check if API endpoints are configured. If empty, proceed in Demo Mode.
+      if (AppConstants.loginUrl.isEmpty) {
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Logged in successfully (Demo Mode)")),
+          );
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
       final body = jsonEncode({
         'phone_number': phoneNumberController.text,
         'password': passwordController.text,
       });
 
       try {
-
         final url = Uri.parse(AppConstants.loginUrl);
         final response = await http.post(
           url,
           headers: {'Content-Type': 'application/json'},
           body: body,
-        );
+        ).timeout(Duration(seconds: AppConstants.defaultTimeout));
 
-        print("Response Status Code: ${response.statusCode}");
-        print("Response Body: ${response.body}");
-
-
-        if (response.statusCode == 200 ) {
-
+        if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Login Successful!")),
           );
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const OtpScreen()),
-          );
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const OtpScreen()),
+            );
+          }
         } else {
           final responseData = jsonDecode(response.body);
           final errorMessage = responseData['error'] ?? "Login Failed!";
@@ -68,14 +76,21 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } catch (error) {
-        print('Error occurred: $error');
+        // Fail-safe fallback to demo mode on network or connection errors
+        print('Error occurred: $error. Falling back to Demo Mode.');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("An error occurred!")),
+          const SnackBar(content: Text("Connection failed. Entering Demo Mode...")),
         );
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } finally {
-        setState(() {
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
       }
     }
   }
@@ -91,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Form(
               key: _formKey,
               child: Padding(
-                padding: const EdgeInsets.only(top:300, left: 10, right: 10),
+                padding: const EdgeInsets.only(top: 300, left: 10, right: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -110,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: "Phone No.",
                       onChanged: (value){},
                       keyboardType: TextInputType.number,
-                      textStyle: TextStyle(
+                      textStyle: const TextStyle(
                         color: Color(0xFFFFFFFF),
                       ),
                       validator: (value) {
@@ -138,17 +153,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 50),
                     isLoading
-                        ?  CircularProgressIndicator()
-                        : Custombutton(text: 'Log in',onPressed: (){
-                      Navigator.pushNamed(context, '/home');
-                    },),
+                        ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                        : Custombutton(
+                            text: 'Log in',
+                            onPressed: login,
+                          ),
                     const SizedBox(height: 15),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
                           Navigator.pushNamed((context), '/signUp');
-                          // Navigate to Sign Up Screen
                         },
                         child: const Text(
                           "Don't have an account? Sign Up",

@@ -9,11 +9,12 @@ import '../screens/full_map.dart';
 import '../screens/home2.dart';
 import '../screens/home_screen_agra.dart';
 import '../screens/theme_selector.dart';
+import '../screens/splash_screen.dart';
 
 class Routes {
   static Map<String, WidgetBuilder> getRoutes() {
     return {
-      '/': (context) => HomeScreenAgra(),
+      '/': (context) => const SplashScreen(),
       '/signUp': (context) => SignUpScreen(),
       '/login': (context) => const LoginScreen(),
       '/home': (context) => const HomeScreenAgra(),
