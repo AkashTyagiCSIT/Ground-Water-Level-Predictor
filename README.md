@@ -112,9 +112,9 @@ flutter run
 
 Contributions are always welcome!
 
-Contributions are what make the open source community such an amazing place to be learn, inspire, and create.
+Contributions are what make the open source community such an amazing place to be learn, inspire, and create
 
-Please read our [contributing guidelines](CONTRIBUTING.md) and steps to get started as a contributor.
+Please read our [contributing guidelines](CONTRIBUTING.md) and steps to get started as a contributor
 
 
 
